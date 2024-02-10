@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use anyhow::Result;
 
 use crate::{
@@ -17,7 +14,12 @@ pub struct LsmIterator {
 
 impl LsmIterator {
     pub(crate) fn new(iter: LsmIteratorInner) -> Result<Self> {
-        Ok(Self { inner: iter })
+        let mut iter = Self { inner: iter };
+        // First item might be empty so we need to skip.
+        if iter.is_valid() && iter.value().is_empty() {
+            iter.next()?;
+        }
+        Ok(iter)
     }
 }
 
@@ -25,19 +27,23 @@ impl StorageIterator for LsmIterator {
     type KeyType<'a> = &'a [u8];
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        self.inner.is_valid()
     }
 
     fn key(&self) -> &[u8] {
-        unimplemented!()
+        self.inner.key().into_inner()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.inner.value()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        self.inner.next()?;
+        while self.inner.is_valid() && self.inner.value().is_empty() {
+            self.inner.next()?;
+        }
+        Ok(())
     }
 }
 
