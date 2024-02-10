@@ -279,7 +279,11 @@ impl LsmStorageInner {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        Ok(self.state.read().memtable.get(key))
+        Ok(match self.state.read().memtable.get(key) {
+            // Empty value is tombstone (means the key is deleted).
+            Some(b) if b.is_empty() => None,
+            v => v,
+        })
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
