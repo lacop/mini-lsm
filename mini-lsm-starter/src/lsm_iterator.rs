@@ -62,18 +62,36 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
     type KeyType<'a> = I::KeyType<'a> where Self: 'a;
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.has_errored && self.iter.is_valid()
     }
 
     fn key(&self) -> Self::KeyType<'_> {
-        unimplemented!()
+        assert!(
+            self.iter.is_valid() && !self.has_errored,
+            "Iterator is not valid"
+        );
+        self.iter.key()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        assert!(
+            self.iter.is_valid() && !self.has_errored,
+            "Iterator is not valid"
+        );
+        self.iter.value()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        if self.has_errored {
+            return Err(anyhow::anyhow!("Iterator has already errored"));
+        }
+        if self.iter.is_valid() {
+            if let e @ Err(_) = self.iter.next() {
+                self.has_errored = true;
+                return e;
+            }
+        }
+
+        Ok(())
     }
 }
