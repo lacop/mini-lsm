@@ -289,7 +289,6 @@ impl LsmStorageInner {
 
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        // TODO: Do we need write lock here? The memtable allows write via shared reference.
         self.state.read().memtable.put(key, value)
     }
 
