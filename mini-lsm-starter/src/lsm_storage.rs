@@ -279,11 +279,23 @@ impl LsmStorageInner {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        Ok(match self.state.read().memtable.get(key) {
+        let guard = self.state.read();
+        match guard.memtable.get(key) {
             // Empty value is tombstone (means the key is deleted).
-            Some(b) if b.is_empty() => None,
-            v => v,
-        })
+            Some(b) if b.is_empty() => return Ok(None),
+            Some(b) => return Ok(Some(b)),
+            None => {} // Continue to search in immutable tables.
+        };
+
+        for imm_memtable in guard.imm_memtables.iter() {
+            match imm_memtable.get(key) {
+                Some(b) if b.is_empty() => return Ok(None),
+                Some(b) => return Ok(Some(b)),
+                None => continue,
+            }
+        }
+
+        Ok(None)
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
