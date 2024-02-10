@@ -84,6 +84,12 @@ impl MemTable {
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         self.map
             .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
+        // We overestimate if the key already exists.
+        // We could subtract the old value size but don't do that for simplicity.
+        self.approximate_size.fetch_add(
+            key.len() + value.len(),
+            std::sync::atomic::Ordering::Relaxed,
+        );
         Ok(())
     }
 
