@@ -135,6 +135,54 @@ fn test_task2_merge_1() {
 }
 
 #[test]
+fn test_task2_merge_custom() {
+    let i1 = MockIterator::new(vec![
+        (Bytes::from("a"), Bytes::from("a1")),
+        (Bytes::from("b"), Bytes::from("b1")),
+        (Bytes::from("c"), Bytes::from("c1")),
+        (Bytes::from("e"), Bytes::new()),
+        (Bytes::from("q"), Bytes::from("q1")),
+        (Bytes::from("z"), Bytes::from("z1")),
+    ]);
+    let i2 = MockIterator::new(vec![
+        (Bytes::from("b"), Bytes::from("b2")),
+        (Bytes::from("c"), Bytes::from("c2")),
+        (Bytes::from("d"), Bytes::from("d2")),
+        (Bytes::from("e"), Bytes::from("e2")),
+        (Bytes::from("q"), Bytes::new()),
+        (Bytes::from("y"), Bytes::from("y2")),
+    ]);
+    let i3 = MockIterator::new(vec![
+        (Bytes::from("e"), Bytes::from("e3")),
+        (Bytes::from("f"), Bytes::from("f3")),
+        (Bytes::from("q"), Bytes::from("q3")),
+        (Bytes::from("x"), Bytes::from("x3")),
+    ]);
+
+    let mut iter = MergeIterator::create(vec![
+        Box::new(i1.clone()),
+        Box::new(i2.clone()),
+        Box::new(i3.clone()),
+    ]);
+
+    check_iter_result_by_key(
+        &mut iter,
+        vec![
+            (Bytes::from("a"), Bytes::from("a1")),
+            (Bytes::from("b"), Bytes::from("b1")),
+            (Bytes::from("c"), Bytes::from("c1")),
+            (Bytes::from("d"), Bytes::from("d2")),
+            (Bytes::from("e"), Bytes::new()),
+            (Bytes::from("f"), Bytes::from("f3")),
+            (Bytes::from("q"), Bytes::from("q1")),
+            (Bytes::from("x"), Bytes::from("x3")),
+            (Bytes::from("y"), Bytes::from("y2")),
+            (Bytes::from("z"), Bytes::from("z1")),
+        ],
+    );
+}
+
+#[test]
 fn test_task2_merge_2() {
     let i1 = MockIterator::new(vec![
         (Bytes::from("a"), Bytes::from("1.1")),
