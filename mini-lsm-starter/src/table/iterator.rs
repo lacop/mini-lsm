@@ -29,14 +29,28 @@ impl SsTableIterator {
         Ok(())
     }
 
+    fn idx_and_iter_for_key(table: &Arc<SsTable>, key: KeySlice) -> Result<(usize, BlockIterator)> {
+        let mut blk_idx = table.find_block_idx(key);
+        let mut blk_iter =
+            BlockIterator::create_and_seek_to_key(table.read_block_cached(blk_idx)?, key);
+        // Key might not be actually present in this block, so we need to move to the next valid key,
+        // ie. the first key of the next block (unless this is the last one).
+        if !blk_iter.is_valid() {
+            blk_idx += 1;
+            if blk_idx < table.num_of_blocks() {
+                blk_iter =
+                    BlockIterator::create_and_seek_to_first(table.read_block_cached(blk_idx)?);
+            }
+        }
+        Ok((blk_idx, blk_iter))
+    }
+
     /// Create a new iterator and seek to the first key-value pair which >= `key`.
     pub fn create_and_seek_to_key(table: Arc<SsTable>, key: KeySlice) -> Result<Self> {
+        let (blk_idx, blk_iter) = Self::idx_and_iter_for_key(&table, key)?;
         Ok(Self {
-            blk_iter: BlockIterator::create_and_seek_to_key(
-                table.read_block_cached(table.find_block_idx(key))?,
-                key,
-            ),
-            blk_idx: 0,
+            blk_iter,
+            blk_idx,
             table,
         })
     }
@@ -45,9 +59,9 @@ impl SsTableIterator {
     /// Note: You probably want to review the handout for detailed explanation when implementing
     /// this function.
     pub fn seek_to_key(&mut self, key: KeySlice) -> Result<()> {
-        self.blk_idx = self.table.find_block_idx(key);
-        self.blk_iter =
-            BlockIterator::create_and_seek_to_key(self.table.read_block_cached(self.blk_idx)?, key);
+        let (blk_idx, blk_iter) = Self::idx_and_iter_for_key(&self.table, key)?;
+        self.blk_idx = blk_idx;
+        self.blk_iter = blk_iter;
         Ok(())
     }
 }
